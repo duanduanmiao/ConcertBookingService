@@ -130,30 +130,86 @@ Dismissing the dialog will redirect the user back to the concerts page, where th
 ---
 ## Running the Project
 
-To run the complete system, both the client and service modules need to be deployed to a servlet container such as Tomcat.
+The client and REST service are separate WAR applications. Deploy both to the same Tomcat instance so the client can reach the service.
 
-### Recommended Setup (Verified with IntelliJ IDEA Ultimate + Tomcat 8.5+)
+### Prerequisites
 
-1. Build the project using Maven: mvn clean package
+- Java 11
+- Maven 3
+- Tomcat 9.x (the application uses the `javax.servlet` API; Tomcat 10+ uses the incompatible `jakarta.servlet` API)
 
-This will generate two WAR files:
-- `concert-client/target/concert-client.war`
-- `concert-service/target/concert-service.war`
+### Install Java and Maven on macOS
 
-2. Deploy both WAR files to a local Tomcat 8.5+ server:
-- Set the client WAR context path to `/concert-webapp`
-- Set the service WAR context path to `/webservice`
+The VS Code Java extension may download its own runtime for the editor. That does not necessarily install Java for your terminal or for Maven. Install a JDK and Maven with [Homebrew](https://brew.sh/):
 
-3. Access the web application in your browser at: http://localhost:10000/concert-webapp/
+```sh
+brew install openjdk@11 maven
+```
 
-> **Note**: During development and testing, I used Maven's `verify` goal to run all provided integration tests and validate the system functionality.
+Make Java 11 available in the current terminal session:
+
+```sh
+export JAVA_HOME="$(brew --prefix openjdk@11)/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+To keep this setting in new Terminal sessions, add those two `export` lines to `~/.zshrc` and open a new terminal. Then check that both tools are available:
+
+```sh
+java -version
+mvn -version
+```
+
+The Java version should be 11. If `brew` is not found, install Homebrew first using the instructions on its website.
+
+### Build
+
+From the repository root, build both applications:
+
+```sh
+mvn clean package
+```
+
+Maven creates:
+
+- `concert-client/target/concert-client-1.0.war`
+- `concert-service/target/concert-service-1.0.war`
+
+### Deploy and start Tomcat
+
+1. Set `CATALINA_HOME` to your Tomcat 9 installation directory. For example:
+
+   ```sh
+   export CATALINA_HOME=/path/to/apache-tomcat-9
+   ```
+
+2. In `$CATALINA_HOME/conf/server.xml`, set the HTTP connector port to `10000` (change its `port="8080"` to `port="10000"`).
+
+3. Copy the WARs into Tomcat's `webapps` directory with the context names expected by the client:
+
+   ```sh
+   cp concert-client/target/concert-client-1.0.war "$CATALINA_HOME/webapps/concert-webapp.war"
+   cp concert-service/target/concert-service-1.0.war "$CATALINA_HOME/webapps/webservice.war"
+   ```
+
+4. Start Tomcat and leave this terminal open to see its logs:
+
+   ```sh
+   "$CATALINA_HOME/bin/catalina.sh" run
+   ```
+
+   To stop it, press `Ctrl+C` in that terminal.
+
+5. Once Tomcat has deployed both applications, open <http://localhost:10000/concert-webapp/>. The service is available at <http://localhost:10000/webservice/services/concert-service>.
+
+The service uses an embedded H2 database and initializes its schema and sample data when it starts. To run the automated tests instead, use `mvn verify` from the repository root.
 
 ---
 ## 🛠️ Technologies Used
 - **Java** (JAX-RS, JPA/Hibernate)
 - **Maven** (multi-module project structure)
 - **HTML, CSS, JavaScript** (Client-side web application)
-- **Tomcat 8.5+** (for deployment)
+- **Tomcat 9.x** (for deployment)
 - **Log4j** (for logging)
 - **H2 Database** (in-memory persistence for demonstration)
 
@@ -180,4 +236,3 @@ While the project was a team effort, I personally contributed to:
 This project was originally developed as part of a university course assignment and has been adapted for public showcase. The front-end web application (concert-client) and the database were provided by the course instructors. Our team implemented the full backend logic in the concert-service module and integrated it with the provided client.
 
 ---
-
